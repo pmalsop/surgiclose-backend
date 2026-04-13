@@ -1,22 +1,13 @@
 import OpenAI from "openai";
 
-const allowedOrigins = [
-  "https://www.skincancerdoc.co.nz",
-  "https://skincancerdoc.co.nz",
-  "https://yary-salmon-g334.squarespace.com"
-];
-
-function setCors(req, res) {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
 export default async function handler(req, res) {
-  setCors(req, res);
+  setCors(res);
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -36,27 +27,7 @@ export default async function handler(req, res) {
     });
 
     const body = req.body || {};
-    const { site, status, histology, size, notes, imageBase64 } = body;
-
-    const userContent = [
-      {
-        type: "input_text",
-        text: `
-Anatomical site: ${site || ""}
-Diagnosis status: ${status || ""}
-Histology: ${histology || ""}
-Lesion size (mm): ${size || ""}
-Notes / concerns: ${notes || ""}
-`,
-      },
-    ];
-
-    if (imageBase64) {
-      userContent.push({
-        type: "input_image",
-        image_url: imageBase64,
-      });
-    }
+    const { site, status, histology, size, notes } = body;
 
     const response = await openai.responses.create({
       model: "gpt-4.1",
@@ -85,22 +56,28 @@ Rules:
 - Do not make a definitive diagnosis from image alone.
 - State uncertainty clearly.
 - Be concise, structured, and practical.
-`,
+`
         },
         {
           role: "user",
-          content: userContent,
-        },
-      ],
+          content: `
+Anatomical site: ${site || ""}
+Diagnosis status: ${status || ""}
+Histology: ${histology || ""}
+Lesion size (mm): ${size || ""}
+Notes / concerns: ${notes || ""}
+`
+        }
+      ]
     });
 
     return res.status(200).json({
-      result: response.output_text,
+      result: response.output_text
     });
   } catch (error) {
     console.error("Analyze error:", error);
     return res.status(500).json({
-      error: error?.message || "Unknown server error",
+      error: error?.message || "Unknown server error"
     });
   }
 }
