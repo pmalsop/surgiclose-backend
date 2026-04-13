@@ -2,14 +2,18 @@ import OpenAI from "openai";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: "OPENAI_API_KEY is missing." });
+  }
 
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const body = req.body || {};
 
     const response = await openai.responses.create({
@@ -20,7 +24,7 @@ export default async function handler(req, res) {
           content: `
 You are a clinician-facing skin cancer surgery decision-support assistant.
 
-You must analyse the case using these frameworks:
+Analyse the case using:
 1. CHAIRS
 2. DRIPS
 3. PIG CARTS
@@ -52,8 +56,9 @@ Rules:
       result: response.output_text
     });
   } catch (error) {
+    console.error("Analyze error:", error);
     return res.status(500).json({
-      error: error.message || "Server error"
+      error: error?.message || "Unknown server error"
     });
   }
 }
