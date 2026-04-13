@@ -15,6 +15,27 @@ export default async function handler(req, res) {
     });
 
     const body = req.body || {};
+    const { site, status, histology, size, notes, imageBase64 } = body;
+
+    const userContent = [
+      {
+        type: "input_text",
+        text: `
+Anatomical site: ${site || ""}
+Diagnosis status: ${status || ""}
+Histology: ${histology || ""}
+Lesion size (mm): ${size || ""}
+Notes / concerns: ${notes || ""}
+`
+      }
+    ];
+
+    if (imageBase64) {
+      userContent.push({
+        type: "input_image",
+        image_url: imageBase64
+      });
+    }
 
     const response = await openai.responses.create({
       model: "gpt-4.1",
@@ -47,7 +68,7 @@ Rules:
         },
         {
           role: "user",
-          content: JSON.stringify(body)
+          content: userContent
         }
       ]
     });
